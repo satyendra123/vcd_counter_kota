@@ -1,0 +1,83 @@
+#Note-1 based on the two loops events i can decide whether it is car or bike. 
+for car= l1 l2    disengaged-disengaged, 2) engaged-disengaged, 3) engaged-engaged 4) disengaged-engaged 5) disengaged-disengaged   if all the four events are captured means it is  a car otherwise it is a bike
+
+Note- i have not tested this but this is the approach i will follow for detection of the car or bike
+#EX-1
+from machine import Pin
+import time
+
+LOOP1_PIN = 14  # GPIO pin for Loop 1
+LOOP2_PIN = 27  # GPIO pin for Loop 2
+loop1 = Pin(LOOP1_PIN, Pin.IN, Pin.PULL_UP)
+loop2 = Pin(LOOP2_PIN, Pin.IN, Pin.PULL_UP)
+
+EVENT_L1_ENGAGED = 0  # Loop 1 engaged (low signal)
+EVENT_L1_DISENGAGED = 1  # Loop 1 disengaged (high signal)
+EVENT_L2_ENGAGED = 0  # Loop 2 engaged (low signal)
+EVENT_L2_DISENGAGED = 1  # Loop 2 disengaged (high signal)
+
+# Store captured events
+events = {
+    "L1_disengaged_L2_disengaged": False,
+    "L1_disengaged_L2_engaged": False,
+    "L1_engaged_L2_disengaged": False,
+    "L1_engaged_L2_engaged": False
+}
+
+def capture_event():
+    state_L1 = loop1.value()
+    state_L2 = loop2.value()
+    
+    # Check all four conditions and set the corresponding event flag
+    if state_L1 == EVENT_L1_DISENGAGED and state_L2 == EVENT_L2_DISENGAGED:
+        events["L1_disengaged_L2_disengaged"] = True
+        print("Event: L1 Disengaged, L2 Disengaged")
+        
+    elif state_L1 == EVENT_L1_DISENGAGED and state_L2 == EVENT_L2_ENGAGED:
+        events["L1_disengaged_L2_engaged"] = True
+        print("Event: L1 Disengaged, L2 Engaged")
+        
+    elif state_L1 == EVENT_L1_ENGAGED and state_L2 == EVENT_L2_DISENGAGED:
+        events["L1_engaged_L2_disengaged"] = True
+        print("Event: L1 Engaged, L2 Disengaged")
+        
+    elif state_L1 == EVENT_L1_ENGAGED and state_L2 == EVENT_L2_ENGAGED:
+        events["L1_engaged_L2_engaged"] = True
+        print("Event: L1 Engaged, L2 Engaged")
+
+def check_vehicle_type():
+    # Check if all events are captured, which indicates it's a car
+    if all(events.values()):
+        print("Detected: Car")
+        return "Car"
+    else:
+        print("Detected: Bike")
+        return "Bike"
+
+# Main loop to capture events and detect vehicle type
+def main():
+    print("Vehicle Detection System Started")
+    
+    # Reset event capture
+    for key in events:
+        events[key] = False
+
+    start_time = time.ticks_ms()  # Get current time to track detection window
+    
+    while True:
+        capture_event()  # Check loop states
+        
+        # Check if 10 seconds have passed since detection started
+        if time.ticks_diff(time.ticks_ms(), start_time) > 10000:  # 10 seconds timeout
+            vehicle_type = check_vehicle_type()
+            print("Vehicle Type:", vehicle_type)
+            
+            # Reset for next detection cycle
+            for key in events:
+                events[key] = False
+            start_time = time.ticks_ms()  # Reset the start time
+
+        time.sleep(0.1)  # Small delay to avoid CPU overuse
+
+# Run the main loop
+main()
